@@ -1,4 +1,3 @@
-
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 
@@ -16,7 +15,6 @@ export interface User {
   isActive: boolean;
 }
 
-
 export interface AllUser {
   _id?: string;
   id?: string;
@@ -31,27 +29,49 @@ export interface AllUser {
   isActive: boolean;
 }
 
+// Fetch a single user by ID for display current user profile at navbar
+export const fetchUserById = createAsyncThunk(
+  "users/fetchUserById",
+  async (userId: string) => {
+    const response = await fetch(`/api/users/${userId}`);
+    const data = await response.json();
+    return data;
+  }
+);
+
 // Fetch users accroding pagination
 export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
-  async ({ q = "", page = 1, limit = 10 }: { q?: string; page?: number; limit?: number }) => {
-    const response = await axios.get(`/api/users?q=${q}&page=${page}&limit=${limit}`);
+  async ({
+    q = "",
+    page = 1,
+    limit = 10,
+  }: {
+    q?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await axios.get(
+      `/api/users?q=${q}&page=${page}&limit=${limit}`
+    );
     return response.data;
   }
 );
 
 //fetch all users
-export const fetchAllUsers = createAsyncThunk("users/fetchAllUsers", async () => {
-  try {
-    const response = await axios.get("/api/users/fetchallUsers"); // Replace with your API endpoint
-    console.log("data is", response.data);
-    
-    return response.data; // Axios stores the response data in the `data` field
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch users");
-  }
-});
+export const fetchAllUsers = createAsyncThunk(
+  "users/fetchAllUsers",
+  async () => {
+    try {
+      const response = await axios.get("/api/users/fetchallUsers"); // Replace with your API endpoint
+      console.log("data is", response.data);
 
+      return response.data; // Axios stores the response data in the `data` field
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Failed to fetch users");
+    }
+  }
+);
 
 // Create a new user
 export const createUser = createAsyncThunk(
@@ -107,14 +127,16 @@ interface UsersState {
   count: number;
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  selectedUser: User | null;
 }
 
 const initialState: UsersState = {
-  users: [],  //store users in an array (pagination wise)
-  allUsers: [],  //store all users in an array 
+  users: [], //store users in an array (pagination wise)
+  allUsers: [], //store all users in an array
   count: 0,
   status: "idle",
   error: null,
+  selectedUser: null,
 };
 
 const userSlice = createSlice({
@@ -123,29 +145,36 @@ const userSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+
       // Fetch users accroding pagination---------------------------------------------------------------------------------------------------------
       .addCase(fetchUsers.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<{ count: number; userData: User[] }>) => {
-        state.status = "succeeded";
-        state.users = action.payload.userData;
-        state.count = action.payload.count;
+      .addCase(
+        fetchUsers.fulfilled,
+        (state, action: PayloadAction<{ count: number; userData: User[] }>) => {
+          state.status = "succeeded";
+          state.users = action.payload.userData;
+          state.count = action.payload.count;
 
-        // Sort users by createdAt (most recent first)
-        state.users.sort((a, b) => {
-          if (a.createdAt && b.createdAt) {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          }
-          return 0;
-        });
-      })
+          // Sort users by createdAt (most recent first)
+          state.users.sort((a, b) => {
+            if (a.createdAt && b.createdAt) {
+              return (
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+              );
+            }
+            return 0;
+          });
+        }
+      )
       .addCase(fetchUsers.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message || "Failed to fetch users";
       })
 
-      // Create user---------------------------------------------------------------------------------------------------------
+      // Create new user---------------------------------------------------------------------------------------------------------
       .addCase(createUser.pending, (state) => {
         state.status = "loading";
       })
@@ -157,7 +186,9 @@ const userSlice = createSlice({
         // Sort users by createdAt (most recent first)
         state.users.sort((a, b) => {
           if (a.createdAt && b.createdAt) {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           }
           return 0;
         });
@@ -187,7 +218,9 @@ const userSlice = createSlice({
       })
       .addCase(updateUser.fulfilled, (state, action: PayloadAction<User>) => {
         state.status = "succeeded";
-        const index = state.users.findIndex((user) => user._id === action.payload._id);
+        const index = state.users.findIndex(
+          (user) => user._id === action.payload._id
+        );
         if (index !== -1) {
           state.users[index] = action.payload;
         }
@@ -195,7 +228,9 @@ const userSlice = createSlice({
         // Sort users by createdAt (most recent first)
         state.users.sort((a, b) => {
           if (a.createdAt && b.createdAt) {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           }
           return 0;
         });
@@ -209,22 +244,42 @@ const userSlice = createSlice({
       .addCase(fetchAllUsers.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchAllUsers.fulfilled, (state, action: PayloadAction<{ count: number; userData: AllUser[] }>) => {
-        // console.log('Fetched users:', action.payload.userData); // Add this line
-        state.status = "succeeded";
-        state.allUsers = action.payload.userData; // Set fetched all users
-        state.count = action.payload.count;
-
-      })
+      .addCase(
+        fetchAllUsers.fulfilled,
+        (
+          state,
+          action: PayloadAction<{ count: number; userData: AllUser[] }>
+        ) => {
+          // console.log('Fetched users:', action.payload.userData); // Add this line
+          state.status = "succeeded";
+          state.allUsers = action.payload.userData; // Set fetched all users
+          state.count = action.payload.count;
+        }
+      )
       .addCase(fetchAllUsers.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message || "Failed to fetch users";
+      })
+
+      //fetch  user by Id (for display current username at navbar) -----------------------------------------------------------------------------------------------
+      .addCase(fetchUserById.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchUserById.fulfilled,(state, action: PayloadAction<User>) => {
+          state.status = "succeeded";
+          state.selectedUser = action.payload;
+
+          // Add user to the list only if it doesn't exist
+          if (!state.users.find((user) => user._id === action.payload._id)) {
+            state.users.push(action.payload);
+          }
+        }
+      )
+      .addCase(fetchUserById.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message || "Failed to fetch user";
       });
   },
 });
-
-
-  
-    
 
 export default userSlice.reducer;

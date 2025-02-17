@@ -46,6 +46,7 @@ const Users: FC = () => {
   const [selectAll, setSelectAll] = useState(false);
   const [searching, setSearching] = useState(false);   //set false searching as a initial state
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null); // Store userId for single delete user
+  const [openUserMenu, setOpenUserMenu] = useState<string | null>(null);  // Track open user menu by user ID (for mobile device)
 
 
   // Fetch users on initial load or when page changes
@@ -95,14 +96,23 @@ const Users: FC = () => {
   const confirmDeleteSelectedUsers = async () => {
     try {
 
+      if (deleteUserId) {
 
-      // Bulk deletion
-      await Promise.all([...selectedUsers].map((userId) => dispatch(deleteUser(userId))));
+        // Single user deletion
+        await dispatch(deleteUser(deleteUserId));
+        setFilteredUsers((prevUsers) => prevUsers.filter((user) => user._id !== deleteUserId));
+      }
 
-      setFilteredUsers((prevUsers) => prevUsers.filter((user) => user._id && !selectedUsers.has(user._id)));
-      setSelectedUsers(new Set());
+      else {
 
+        // Bulk deletion
+        await Promise.all([...selectedUsers].map((userId) => dispatch(deleteUser(userId))));
+        setFilteredUsers((prevUsers) => prevUsers.filter((user) => user._id && !selectedUsers.has(user._id)));
+        setSelectedUsers(new Set());
+      }
 
+      // Reset state
+      setDeleteUserId(null);
       setBulkDeleteMode(false);
       setMenuOpen(false);
       setIsDialogOpen(false);
@@ -117,28 +127,38 @@ const Users: FC = () => {
   };
 
   // Cancel the delete process and reset the state
-  const cancelDelete = () => {
+  const cancelDeleteButton = () => {
     setIsDialogOpen(false);
     setBulkDeleteMode(false);
-    setSelectedUsers(new Set());
+    setSelectedUsers(new Set()); // Clear selected users
   };
+
 
   // Handle selecting or deselecting individual users
   const handleUserSelection = (userId: string) => {
     setSelectedUsers((prev) => {
       const newSelectedUsers = new Set(prev);
+
       if (newSelectedUsers.has(userId)) {
         newSelectedUsers.delete(userId);
       } else {
         newSelectedUsers.add(userId);
       }
 
-      // Update selectAll state based on whether all users on the current page are selected
-      setSelectAll(newSelectedUsers.size === users.length);
+      // Enable bulk delete mode if at least one checkbox is selected
+      setBulkDeleteMode(newSelectedUsers.size > 0);
+
+      // Update "Select All" checkbox state
+      setSelectAll(newSelectedUsers.size === users.length && users.length > 0);
 
       return newSelectedUsers;
     });
   };
+
+  useEffect(() => {
+    setBulkDeleteMode(selectedUsers.size > 0);
+  }, [selectedUsers]);
+
 
   // Handle "Select All" checkbox for bulk actions
   const handleSelectAllChange = () => {
@@ -150,7 +170,6 @@ const Users: FC = () => {
     }
     setSelectAll(!selectAll);
   };
-
 
   // Change the page when pagination is triggered
   const handlePageChange = (page: number) => {
@@ -177,15 +196,19 @@ const Users: FC = () => {
 
 
   return (
-    <div className="rounded-md px-5 pt-5 bg-white opacity-85 shadow-xl h-[calc(100vh-80px)] md:h-[calc(100vh-83px)] lg:h-[calc(100vh-70px)]">
+    <div className="bg-white  rounded-md px-5 pt-5 opacity-85 shadow-xl h-[calc(100vh-60px)] ">   {/* main div for users page set height to 100vh - navbar height */}
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3">
         {/* Left Side */}
         <div>
+
+          {/* if bulk delete mode is false then show search bar */}
           {!isBulkDeleteMode && <Search onSearchChange={handleSearchChange} />}
+
+          {/* if bulk delete mode is true then show delete multiple users and cancel button */}
           {isBulkDeleteMode && (
-            <div className="flex items-center space-x-4 ml-7">
+            <div className="flex   items-center space-x-4 ml-7">
 
               {/* delete multiple users */}
               <button
@@ -198,7 +221,11 @@ const Users: FC = () => {
 
               {/* cancel button for close the bulk delete mode */}
               <button
-                onClick={() => setBulkDeleteMode(false)}
+                onClick={() => {
+                  setBulkDeleteMode(false);
+                  setSelectedUsers(new Set()); // Deselect all checkboxes
+                  setSelectAll(false); // Uncheck the "Select All" checkbox
+                }}
                 className="text-2xl font-bold hover:text-gray-400 text-red-600"
               >
                 <MdCancel />
@@ -210,6 +237,8 @@ const Users: FC = () => {
 
         {/* Right Side */}
         <div className="flex md:justify-between justify-end md:items-center px-2 space-x-3">
+
+          {/* Add New User Button */}
           <Link href="/admin/dashboard/users/adduser">
             <button
               className={`bg-[#6aa84f] hover:bg-[#38761d] py-1 px-4 text-sm md:text-md md:py-2 md:px-5 md:w-32 mt-2 md:mt-0 font-bold rounded-md shadow-2xl ${isBulkDeleteMode ? "hidden md:inline-block" : ""
@@ -218,13 +247,16 @@ const Users: FC = () => {
               Add New
             </button>
           </Link>
-          <div className={`relative mt-2 md:mt-0 ${isBulkDeleteMode ? "hidden md:inline-block " : ""}`}>
+
+          {/* Bulk Delete Button */}
+          <div className={`relative mt-2 md:mt-0 md:hidden ${isBulkDeleteMode ? "hidden md:inline-block " : ""}`}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="border-2 border-[#6aa84f] hover:bg-[#6aa84f] p-1 md:p-2 rounded-full md:rounded-md"
             >
               <IoMdMore className={"h-4 w-4"} />
             </button>
+
             {menuOpen && (
               <div className="absolute top-0 right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-2xl text-xs font-bold">
                 <button
@@ -260,30 +292,28 @@ const Users: FC = () => {
             {/* Header (sticky) */}
             <thead className="sticky top-0 bg-white z-10 shadow-sm">
               <tr className="text-black font-bold">
-                {isBulkDeleteMode && (
-                  <th className="p-2 ">
-                    {/* Main Checkbox for Bulk Delete Mode */}
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.size === users.length && users.length > 0}
-                      onChange={handleSelectAllChange}
-                      className="transition-all duration-300"
-                    />
 
-                  </th>
-                )}
-                <th className="p-2">Username</th>
+                <th className="p-2 text-center ">      {/* Main Checkbox for Bulk Delete Mode */}
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.size === users.length && users.length > 0}
+                    onChange={handleSelectAllChange}
+                    className="text-center  -mr-5 "
+                  />
+                </th>
+                <th className="p-3">Username</th>
                 <th className="p-2">Email</th>
                 <th className="p-2">Created At</th>
                 <th className="p-2">Role</th>
                 <th className="p-2">Status</th>
+
               </tr>
 
               {/* Decorative line between header and body */}
               <tr className="">
                 <td
-                  colSpan={isBulkDeleteMode ? 6 : 5}
-                  className="h-1 bg-[length:10px_10px] bg-[radial-gradient(circle,_#888888_30%,_transparent_30%)]"
+                  colSpan={100}
+                  className="h-1 bg-[length:10px_10px] bg-[radial-gradient(circle,_#888888_30%,_transparent_30%)] "
                 ></td>
               </tr>
             </thead>
@@ -313,17 +343,16 @@ const Users: FC = () => {
 
                   <React.Fragment key={user._id || user.email}>
                     <tr key={user._id || user.email}>
+
                       {/* Checkboxes */}
-                      {isBulkDeleteMode && (
-                        <td className="p-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.has(user._id || "")}
-                            onChange={() => handleUserSelection(user._id || "")}
-                            className="transition-all duration-300"
-                          />
-                        </td>
-                      )}
+                      <td className=" text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(user._id || "")}
+                          onChange={() => handleUserSelection(user._id || "")}
+                          className="-mr-5 "
+                        />
+                      </td>
 
                       {/* User Profile */}
                       <td className="hidden p-3 md:flex  ">
@@ -338,7 +367,7 @@ const Users: FC = () => {
                             />
                           </Link>
 
-                          <span className="truncate block w-[120px]" title={user.username || "Unknown"}>
+                          <span className="truncate block w-[100px]" title={user.username || "Unknown"}>
                             {user.username || "Unknown"}
                           </span>
                         </div>
@@ -346,14 +375,14 @@ const Users: FC = () => {
 
                       {/* Email */}
                       <td>
-                        <span className=" p-3 truncate block w-[200px]" title={user.email}>
+                        <span className=" p-3  truncate block w-[200px]" title={user.email}>
                           {user.email}
                         </span>
                       </td>
 
 
                       {/* Date */}
-                      <td className="p-3">{user.createdAt?.slice(0, 10)}</td>(date.format('dddd, MMMM Do YYYY')); 
+                      <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "N/A"}</td>
 
                       {/* Role */}
                       <td className="p-3">
@@ -473,54 +502,71 @@ const Users: FC = () => {
                   />
                   <div className="space-y-1">
                     {/* Username */}
-                    <h1 className="text-xs truncate w-[120px] font-bold">{user.username}</h1>
+                    <h1 className="text-xs truncate w-[150px] font-bold">{user.username}</h1>
 
                     {/* Role and Date */}
                     <div className="flex items-center space-x-2">
-                      <div
-                        className={`px-3 py-1 flex items-center justify-center text-xs rounded-lg ${user.isAdmin ? "bg-[#6aa84f]" : "bg-gray-400"
-                          }`}
-                      >
+
+                      <div className={`px-3 py-1 flex items-center justify-center text-xs rounded-lg ${user.isAdmin ? "bg-[#6aa84f]" : "bg-gray-400"}`}>
                         {user.isAdmin ? "Admin" : "User"}
                       </div>
-                      <h1 className="text-xs text-gray-500">{user.createdAt?.slice(0, 10)}</h1>
+
+                      {/* date */}
+                      <h1 className="text-xs text-gray-500">{user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "N/A"}</h1>
+
                     </div>
                   </div>
                 </div>
 
                 {/* Right Side: Menu Icon */}
-                <div className="relative">
+                <div 
+                className="relative">
+
+                  {/* Toggle Button */}
                   <button
-                    onClick={() => setMenuOpen(!menuOpen)}
+                    onClick={() => setOpenUserMenu(openUserMenu === user._id ? null : (user._id || ''))} // Ensure a valid ID or fallback to empty string
                     className="border-2 border-[#6aa84f] hover:bg-[#6aa84f] rounded-full p-1 md:p-2 md:rounded-md ml-10"
                   >
                     <IoMdMore className="w-4 h-4" /> {/* Menu Icon for mobile */}
                   </button>
-                  {menuOpen && (
-                    <div className="absolute top-0 right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-2xl text-xs font-bold">
+
+                  {/* Dropdown Menu */}
+                  {openUserMenu === user._id && (  // Only display menu for the selected user
+                    <div
+                      tabIndex={0} // Makes it focusable
+                      onBlur={() => setOpenUserMenu(null)} // Closes when losing focus
+                      className="absolute -top-2  right-5 mt-3 w-24 bg-white border border-gray-300 rounded-md shadow-2xl text-xs font-bold">
+
                       {/* Edit Button */}
-                      <button
-                        onClick={() => {
-                          // Add the edit functionality here (e.g., navigate to edit page)
-                          setMenuOpen(false);
-                        }}
-                        className="w-full text-left py-2 px-4 hover:bg-gray-200"
-                      >
-                        Edit
-                      </button>
+                      <Link href={`/admin/dashboard/users/${user._id || ""}`}>
+                        <button
+                          onClick={() => {
+                            // Add the edit functionality here (e.g., navigate to edit page)
+                            setOpenUserMenu(null); // Close the menu after action
+                          }}
+                          className="w-full text-left py-2 px-4 hover:bg-gray-200"
+                        >
+                          Edit
+                        </button>
+                      </Link>
+
+
                       {/* Delete Button */}
                       <button
                         onClick={() => {
-                          // handleDeleteUser(user._id || "");
-                          setMenuOpen(false);
+                          setDeleteUserId(user._id || ""); // Set user ID for single delete
+                          setIsDialogOpen(true); // Open confirmation dialog
+                          setOpenUserMenu(null); // Close the menu after action
                         }}
                         className="w-full text-left py-2 px-4 hover:bg-gray-200 text-red-600"
                       >
                         Delete
                       </button>
+
                     </div>
                   )}
                 </div>
+
               </div>
 
               {/* Line Divider between users */}
@@ -548,7 +594,7 @@ const Users: FC = () => {
         isOpen={isDialogOpen}
         title="Delete Selected Users"
         message="Are you sure you want to delete these users?"
-        onCancel={cancelDelete}
+        onCancel={cancelDeleteButton}
         onConfirm={confirmDeleteSelectedUsers}
       />
 

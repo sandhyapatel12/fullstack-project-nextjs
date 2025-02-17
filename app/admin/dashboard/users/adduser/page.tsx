@@ -75,9 +75,9 @@ const AddUser = () => {
   }
 
   return (
-    <div className="  flex items-center justify-center mt-9">
+    <div className="flex items-center justify-center mt-12 mb-5 lg:mt-0 lg:mb-0  lg:h-[calc(100vh-60px)]">
       <div
-        className={`bg-white opacity-85   shadow-lg rounded-lg py-4 px-3 w-full max-w-5xl relative transform transition-all duration-500 ease-in-out ${formVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"
+        className={`bg-white opacity-85   shadow-lg rounded-lg py-4 px-3 w-full max-w-4xl relative transform transition-all duration-500 ease-in-out ${formVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"
           }`}
       >
         <div className="relative flex items-center justify-center mb-10">
@@ -93,7 +93,7 @@ const AddUser = () => {
             </div>
           </div>
         </div>
-        <form onSubmit={handleCreateUser} className="space-y-3 px-5 ">
+        <form onSubmit={handleCreateUser} className=" text-sm px-5 mt-14 ">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
             <div className="mt-5">
               <label className="block mb-2">Username</label>
@@ -130,7 +130,7 @@ const AddUser = () => {
               <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="w-full px-4 py-2 border  border-[#38761d] rounded" />
             </div>
           </div>
-          <button type="submit" className="w-full bg-[#38761d] text-white py-2 rounded hover:bg-[#6aa84f]">
+          <button type="submit" className="w-full bg-[#38761d] text-white py-2 rounded hover:bg-[#6aa84f] mt-5">
             Add User +
           </button>
         </form>

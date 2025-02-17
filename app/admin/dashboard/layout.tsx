@@ -24,7 +24,7 @@ const Layout = ({ children }: any) => {
   return (
     <SidebarProvider>
 
-    <div className="flex flex-col lg:flex-row w-full  min-h-screen">
+    <div className="flex flex-col lg:flex-row w-full  min-h-screen bg-background ">
 
       {/* left side content : sidebar */}
       <div className=''>

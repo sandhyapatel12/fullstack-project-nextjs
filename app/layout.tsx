@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en"  >
       <body suppressHydrationWarning className={cn(inter.className, {"debug-screens" : process.env.NODE_ENV === "development"})}>
         {/* Render the ClientLayout which includes the Redux Provider */}
         <ClientLayout>{children}</ClientLayout>

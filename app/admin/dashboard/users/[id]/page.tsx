@@ -28,6 +28,7 @@ interface ViewPageProps {
 }
 
 const UpdatePage = ({ params }: ViewPageProps) => {
+
   // Unwrap the params to get the id
   const { id } = use(params);
   console.log("update user id is:", id);
@@ -35,6 +36,8 @@ const UpdatePage = ({ params }: ViewPageProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { status, error, users } = useSelector((state: RootState) => state.users);
   console.log("user is:", users);
+
+
 
   // Set form data initially from users state
   const [formData, setFormData] = useState<User>({
@@ -46,6 +49,7 @@ const UpdatePage = ({ params }: ViewPageProps) => {
     isAdmin: false,
     isActive: false,
   });
+
 
   const router = useRouter()
 
@@ -77,14 +81,22 @@ const UpdatePage = ({ params }: ViewPageProps) => {
 
   // Handle form input change
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    const { name, value, type } = e.target;
+    const newValue =
+      type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
+        : name === "isAdmin" || name === "isActive"
+          ? value === "true"
+          : value;
+  
+    setFormData({
+      ...formData,
+      [name]: newValue,
+    });
   };
+  
 
   // Handle update user data
   const handleUpdateUser = (e: React.FormEvent) => {
@@ -116,100 +128,67 @@ const UpdatePage = ({ params }: ViewPageProps) => {
   }
 
   return (
-    <div className="p-4 flex items-center justify-center mt-10">
-      <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-3xl relative">
-        <div className="relative flex items-center justify-center mb-10">
-          <div className="absolute -top-16 w-32 h-32 rounded-full bg-white">
-            <div className="relative w-32 h-32 rounded-full ring-4 ring-white shadow-2xl overflow-hidden">
-              <Image
-                src={formData.user_img || "/unknown.svg"} // Changed from img to user_img
-                alt="User Profile"
-                layout="fill"
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </div>
+     <div className="  flex items-center justify-center mt-12 mb-5 md:mt-0 md:mb-0  md:h-[calc(100vh-60px)]">
+         <div className="bg-white opacity-90   shadow-lg rounded-lg py-4 px-3 w-full max-w-4xl relative ">
+           <div className="relative flex items-center justify-center mb-10">
+             <div className="absolute -top-12 w-24 h-24 rounded-full bg-white opacity-90">
+               <div className="relative flex items-center justify-center w-24 h-24 rounded-full ring-4 ring-white shadow-2xl overflow-hidden">
+                 <Image
+                   src={formData?.user_img || "/user2.png"}
+                   alt="User Profile"
+                   width={80}
+                   height={80}
+                   className="object-cover"
+                 />
+               </div>
+             </div>
+           </div>
+           <form onSubmit={handleUpdateUser} className=" px-5 mt-14 text-sm ">
 
-        <form className="space-y-6 mt-20" onSubmit={handleUpdateUser}>
-          <div className="grid px-5 grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-black font-bold mb-2">Username</label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-black font-bold mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-black font-bold mb-2">Phone</label>
-              <input
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-black font-bold mb-2">Is Admin?</label>
-              <select
-                name="isAdmin"
-                value={formData.isAdmin ? "true" : "false"}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-black font-bold mb-2">Is Active?</label>
-              <select
-                name="isActive"
-                value={formData.isActive ? "true" : "false"}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-black font-bold mb-2">Address</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                rows={1}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-          </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
+               <div className="mt-5">
+                 <label className="block mb-2">Username</label>
+                 <input type="text" name="username" value={formData.username} onChange={handleInputChange} className="w-full px-4 py-2 border border-[#38761d] rounded " autoFocus />
+               </div>
+               <div className="mt-5">
+                 <label className="block mb-2">Email</label>
+                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-2 border  border-[#38761d]  rounded" />
+               </div>
+               {/* <div>
+                 <label className="block mb-2">Password</label>
+                 <input type="password" name="password" value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 border border-[#38761d]  rounded" />
+               </div> */}
+               <div>
+                 <label className="block mb-2">Phone</label>
+                 <input type="number" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-2 border border-[#38761d]  rounded" />
+               </div>
+               <div>
+                 <label className="block mb-2">Is Admin?</label>
+                 <select name="isAdmin" value={formData.isAdmin ? "true" : "false"} onChange={handleInputChange} className="w-full border-[#38761d]  px-4 py-2 border rounded">
+                   <option value="true">Yes</option>
+                   <option value="false">No</option>
+                 </select>
+               </div>
+               <div>
+                 <label className="block mb-2">Is Active?</label>
+                 <select name="isActive" value={formData.isActive ? "true" : "false"} onChange={handleInputChange} className="w-full px-4 py-2 border border-[#38761d]  rounded">
+                   <option value="true">Yes</option>
+                   <option value="false">No</option>
+                 </select>
+               </div>
+               <div>
+                 <label className="block mb-2">Address</label>
+                 <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="w-full px-4 py-2 border  border-[#38761d] rounded" />
+               </div>
+             </div>
 
-          <div className="mt-6">
-            <button
-              type="submit"
-              className="w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700 transition duration-200"
-            >
-              Update
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+             <button type="submit" className="w-full bg-[#38761d] text-white py-2 rounded hover:bg-[#6aa84f] mt-5 ">
+               Update
+             </button>
+
+           </form>
+         </div>
+       </div>
   );
 };
 
